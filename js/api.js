@@ -53,26 +53,25 @@ export class P120Api {
     });
   }
 
-  uploadFile(path, signedToken, file) {
-    return this.uploadFileWithXhr(path, signedToken, file);
+  uploadFile(path, _signedToken, file) {
+    return this.uploadFileWithXhr(path, file);
   }
 
-  uploadFileWithXhr(path, signedToken, file) {
+  uploadFileWithXhr(path, file) {
     const encodedPath = [this.bucketName, ...String(path).split("/")]
       .map((segment) => encodeURIComponent(segment))
       .join("/");
-    const uploadUrl = new URL(`${this.supabaseUrl}/storage/v1/object/upload/sign/${encodedPath}`);
-    uploadUrl.searchParams.set("token", signedToken);
+    const uploadUrl = `${this.supabaseUrl}/storage/v1/object/${encodedPath}`;
 
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
-      xhr.open("POST", uploadUrl.toString(), true);
-      // Supabase Storage 目前仍要求 Authorization；只傳公開 anon key，真正的
-      // 上傳授權仍由 signed token 與 P120 限定路徑 policy 共同控制。
-      // 使用 raw binary 避開 2026 年 Storage multipart 誤判 RLS 的相容性問題。
+      xhr.open("POST", uploadUrl, true);
+      // 使用標準 raw-binary Storage endpoint。公開 anon key 只識別 anon 角色；
+      // 真正授權由 PolP120SignedUploadInsert 依 P120 資料表、隨機物件路徑、
+      // pending 狀態與上傳期限逐筆核准，不開放列出、讀取、更新或刪除。
       xhr.setRequestHeader("Authorization", `Bearer ${this.config.SUPABASE_ANON_KEY}`);
+      xhr.setRequestHeader("apikey", this.config.SUPABASE_ANON_KEY);
       xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
-      xhr.setRequestHeader("Cache-Control", "max-age=0");
       xhr.timeout = 25 * 60 * 1000;
       xhr.onload = () => {
         if (xhr.status >= 200 && xhr.status < 300) return resolve();

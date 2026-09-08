@@ -1,7 +1,7 @@
-import { P120Api } from "./api.js?v=1.0.7";
-import { Receiver } from "./receive.js?v=1.0.7";
-import { Uploader } from "./upload.js?v=1.0.7";
-import { normalizeRoomCode } from "./utils.js?v=1.0.7";
+import { P120Api } from "./api.js?v=1.0.8";
+import { Receiver } from "./receive.js?v=1.0.8";
+import { Uploader } from "./upload.js?v=1.0.8";
+import { normalizeRoomCode } from "./utils.js?v=1.0.8";
 
 function validateConfig(config) {
   if (!config) return "找不到 config.js。請先複製 config-sample.js 為 config.js 並填入 Supabase 公開設定。";

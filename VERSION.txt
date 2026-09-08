@@ -1,4 +1,4 @@
-P120 FileCourier V1.0.7 — Signed Upload RLS Compatibility
+P120 FileCourier V1.0.8 — Standard Raw-Binary Upload Fix
 Build date: 2026-09-08
 Baseline: GitHub Pages + Supabase Database + private Storage + Edge Function
 Fix: mobile signed uploads use raw binary with the required public Authorization header and a narrowly scoped P120 Storage INSERT policy.

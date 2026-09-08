@@ -91,6 +91,8 @@ V1.0.6 針對 Android Chrome 出現 `Failed to fetch` 的情況，讓觸控裝�
 
 V1.0.7 經實際 API 診斷確認目前 Storage Gateway 仍要求 Authorization，且 signed upload 最終會套用 anon INSERT RLS。所有裝置因此統一改為帶公開 anon Authorization 的 raw binary 上傳，並新增 P120 專屬窄範圍 Storage INSERT policy。既有部署只需執行 `database/10_P120_SignedUploadPolicyFix.sql`，不需重跑其他 SQL，也不需重新部署 Edge Function。
 
+V1.0.8 經正式 Supabase 專案端對端實測，改用標準 `/storage/v1/object/{bucket}/{path}` raw-binary endpoint，並同時送出公開 anon `Authorization` 與 `apikey`。測試已通過「建立房間 → Storage HTTP 200 → 完成上傳 → 立即取消清理」。此調整避開 signed-upload endpoint 在桌機出現完成狀態不同步、Android 直接連線失敗的問題。已完成 V1.0.7 SQL 修復者只需更新 GitHub Pages 前端，不需重跑 SQL 或重新部署 Edge Function。
+
 ## 三、設定前端
 
 複製：
@@ -145,4 +147,4 @@ Anon／publishable key 本來就是前端公開金鑰；真正敏感的是 servi
 
 ## 版本基準
 
-本 ZIP 為 **P120 FileCourier V1.0.7 — Signed Upload RLS Compatibility**。後續修改應從此版本延伸，並繼續遵守 P-SDS 與共用 Supabase Project隔離規範。
+本 ZIP 為 **P120 FileCourier V1.0.8 — Standard Raw-Binary Upload Fix**。後續修改應從此版本延伸，並繼續遵守 P-SDS 與共用 Supabase Project隔離規範。

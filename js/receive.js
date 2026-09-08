@@ -1,4 +1,4 @@
-import { fileExtension, formatBytes, normalizeRoomCode, showToast, startCountdown } from "./utils.js?v=1.0.7";
+import { fileExtension, formatBytes, normalizeRoomCode, showToast, startCountdown } from "./utils.js?v=1.0.8";
 
 export class Receiver {
   constructor(api) {
