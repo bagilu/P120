@@ -1,0 +1,2 @@
+[functions.P120-transfer-api]
+verify_jwt = false

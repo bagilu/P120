@@ -2,7 +2,7 @@
 
 免登入的短效檔案傳送網站。上傳者可一次選取最多 20 個檔案，單檔上限 50 MiB、合計上限 100 MiB；完成上傳後產生六位數房間碼、分享網址與 QR Code。接收者可在 10 分鐘內下載，逾時後由伺服器立即拒絕新下載。
 
-頁首品牌為「慈濟大學經營管理學系 好玩實驗室 作品。」，「好玩實驗室」連至 <https://tcubmdsbilab.github.io/P101/>。
+頁首品牌為「慈濟大學經營管理學系 好玩實驗室 作品」，「好玩實驗室」連至 <https://tcubmdsbilab.github.io/P101/>。
 
 ## 架構
 
@@ -41,11 +41,20 @@
 
 使用 Supabase CLI：
 
-```bash
-supabase functions deploy P120-transfer-api --no-verify-jwt
+本專案已在根層 `supabase/config.toml` 設定：
+
+```toml
+[functions.P120-transfer-api]
+verify_jwt = false
 ```
 
-設定兩個伺服器端 secrets：
+請從本專案根目錄部署，讓 CLI 同時讀取這個設定：
+
+```bash
+supabase functions deploy P120-transfer-api
+```
+
+正式網站使用 `https://tcubmdsbilab.github.io` 時，即使尚未建立自訂 secret，也有安全的預設 Origin。仍建議設定以下兩個伺服器端 secrets，讓設定明確且方便日後更換網域：
 
 ```bash
 supabase secrets set P120_ALLOWED_ORIGINS=https://YOUR_GITHUB_USERNAME.github.io
@@ -58,9 +67,19 @@ supabase secrets set P120_RATE_LIMIT_SALT=請換成至少32字元的隨機字串
 https://example.github.io,https://files.example.edu.tw
 ```
 
-Supabase 會自動提供 `SUPABASE_URL` 與 `SUPABASE_SERVICE_ROLE_KEY` 給 Edge Function。不要把 service role key 放入 GitHub、`config.js` 或任何瀏覽器檔案。
+若暫時沒有設定 `P120_RATE_LIMIT_SALT`，程式會以伺服器端 service role key 作為不可見的雜湊 salt，不會傳到瀏覽器。Supabase 會自動提供 `SUPABASE_URL` 與 `SUPABASE_SERVICE_ROLE_KEY` 給 Edge Function。不要把 service role key 放入 GitHub、`config.js` 或任何瀏覽器檔案。
 
-若使用 Dashboard部署，Function 名稱必須為 `P120-transfer-api`，並關閉 JWT verification；同時在 Edge Function Secrets設定上述兩個 P120 secrets。
+若使用 Dashboard部署，Function 名稱必須為 `P120-transfer-api`，並在 Function 設定中明確關閉 JWT verification；同時可在 Edge Function Secrets設定上述兩個 P120 secrets。若 Dashboard部署時沒有套用 `supabase/config.toml`，請手動關閉 JWT verification或改以 CLI 從專案根目錄重新部署。
+
+### 出現「無法連接檔案服務」時
+
+依序確認：
+
+1. Edge Function 名稱完全等於 `P120-transfer-api`。
+2. JWT verification 已關閉。
+3. `P120_ALLOWED_ORIGINS` 若有設定，值為 `https://tcubmdsbilab.github.io`，不得加入 `/P120/` 或結尾斜線。
+4. `config.js` 的 `SUPABASE_URL` 與 `EDGE_FUNCTION_NAME` 正確。
+5. 修改後重新整理 GitHub Pages；Edge Function secret 儲存後會立即生效。
 
 ## 三、設定前端
 

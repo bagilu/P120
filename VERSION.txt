@@ -1,3 +1,4 @@
-P120 FileCourier V1.0 — Short-lived Multi-file Transfer
+P120 FileCourier V1.0.2 — Header Verification Update
 Build date: 2026-09-08
 Baseline: GitHub Pages + Supabase Database + private Storage + Edge Function
+Fix: removed the final punctuation from the header title and added a visible V1.0.2 footer marker.

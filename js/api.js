@@ -32,7 +32,7 @@ export class P120Api {
         body: JSON.stringify({ action, ...payload })
       });
     } catch {
-      throw new P120ApiError("NETWORK_ERROR", "無法連接檔案服務，請檢查網路後再試。");
+      throw new P120ApiError("NETWORK_ERROR", "無法連接檔案服務。請確認 P120-transfer-api 已部署、JWT 驗證已關閉，且網站網域已列入允許來源。");
     }
 
     let body = null;

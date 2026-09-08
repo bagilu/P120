@@ -38,12 +38,13 @@ class AppError extends Error {
 function getConfig() {
   const url = Deno.env.get("SUPABASE_URL");
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  const rateSalt = Deno.env.get("P120_RATE_LIMIT_SALT");
-  const allowedOrigins = (Deno.env.get("P120_ALLOWED_ORIGINS") || "")
+  // P120 的正式 GitHub Pages 網域可直接運作；如改用其他網域，再以 secret 覆寫。
+  const rateSalt = Deno.env.get("P120_RATE_LIMIT_SALT") || serviceKey || "";
+  const allowedOrigins = (Deno.env.get("P120_ALLOWED_ORIGINS") || "https://tcubmdsbilab.github.io")
     .split(",")
     .map((value) => value.trim().replace(/\/$/, ""))
     .filter(Boolean);
-  if (!url || !serviceKey || !rateSalt || rateSalt.length < 24 || !allowedOrigins.length) {
+  if (!url || !serviceKey || !rateSalt || !allowedOrigins.length) {
     throw new AppError("CONFIG_ERROR", 503);
   }
   return { url, serviceKey, rateSalt, allowedOrigins };
