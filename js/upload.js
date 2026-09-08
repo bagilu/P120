@@ -1,4 +1,4 @@
-import { LIMITS, createManagementToken, fileExtension, formatBytes, makeShareUrl, renderQrCode, showToast, startCountdown } from "./utils.js?v=1.0.6";
+import { LIMITS, createManagementToken, fileExtension, formatBytes, makeShareUrl, renderQrCode, showToast, startCountdown } from "./utils.js?v=1.0.7";
 
 export class Uploader {
   constructor(api) {

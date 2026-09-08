@@ -1,7 +1,7 @@
-import { P120Api } from "./api.js?v=1.0.6";
-import { Receiver } from "./receive.js?v=1.0.6";
-import { Uploader } from "./upload.js?v=1.0.6";
-import { normalizeRoomCode } from "./utils.js?v=1.0.6";
+import { P120Api } from "./api.js?v=1.0.7";
+import { Receiver } from "./receive.js?v=1.0.7";
+import { Uploader } from "./upload.js?v=1.0.7";
+import { normalizeRoomCode } from "./utils.js?v=1.0.7";
 
 function validateConfig(config) {
   if (!config) return "找不到 config.js。請先複製 config-sample.js 為 config.js 並填入 Supabase 公開設定。";
@@ -14,7 +14,6 @@ function validateConfig(config) {
   if (config.EDGE_FUNCTION_NAME !== "P120-transfer-api" || config.STORAGE_BUCKET !== "p120-temp-files") {
     return "P120 的 Edge Function 或 Storage bucket 名稱與安全規格不一致。";
   }
-  if (!window.supabase?.createClient) return "Supabase 元件載入失敗，請檢查網路連線。";
   return null;
 }
 

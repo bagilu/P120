@@ -2,7 +2,7 @@
 
 ## 執行順序
 
-依檔名前綴由小到大執行 `01` 至 `09`，再執行 `90_P120_Permissions.sql`；最後單獨執行 `99_P120_HealthCheck.sql` 驗證。
+全新部署依檔名前綴由小到大執行 `01` 至 `10`，再執行 `90_P120_Permissions.sql`；最後單獨執行 `99_P120_HealthCheck.sql` 驗證。既有 V1.0.6 部署只需執行 `10_P120_SignedUploadPolicyFix.sql`。
 
 ## P-SDS 範圍聲明
 
@@ -12,7 +12,9 @@
 - `public."TblP120File"`
 - `public."TblP120RateLimit"`
 - `public."P120CheckRateLimit"(...)`
+- `public."P120CanUploadStorageObject"(text)`
 - Storage bucket `p120-temp-files`
+- Storage policy `PolP120SignedUploadInsert`
 
 不允許：
 
@@ -22,7 +24,7 @@
 - 修改其他 `TblPxx...`、RPC、policy、trigger或 bucket
 - 以 SQL 直接刪除 `storage.objects` metadata
 
-`06_CreatePolicies.sql` 刻意不建立 anon／authenticated policy。這不是遺漏，而是因為 P120 的資料與 private bucket全部由 Edge Function使用 service role存取。
+P120 三張 public 資料表仍不建立 anon／authenticated policy。Storage 只有一條 P120 專屬 anon INSERT policy，且必須同時符合 bucket 名稱、資料庫中不可猜測的完整物件路徑、pending 狀態、uploading 房間及尚未超過上傳期限；沒有 SELECT、UPDATE 或 DELETE policy。
 
 ## 重複部署
 

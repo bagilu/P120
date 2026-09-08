@@ -33,7 +33,8 @@
 7. `database/07_GrantPermissions.sql`
 8. `database/08_SeedData.sql`
 9. `database/09_CreateStorage.sql`
-10. `database/90_P120_Permissions.sql`
+10. `database/10_P120_SignedUploadPolicyFix.sql`
+11. `database/90_P120_Permissions.sql`
 
 最後執行 `database/99_P120_HealthCheck.sql`。所有 `Passed` 應為 `true`，三張資料表的 `RlsEnabled` 與 `RlsForced` 也應為 `true`。
 
@@ -88,6 +89,8 @@ V1.0.5 改善 Android 等觸控裝置的上傳穩定性：手機採逐檔上傳�
 
 V1.0.6 針對 Android Chrome 出現 `Failed to fetch` 的情況，讓觸控裝置改用 `XMLHttpRequest` 將 `multipart/form-data` 直接送至 signed upload URL，不額外附加 Authorization、API key、`x-upsert` 或手動 Content-Type，藉此避免手機對跨網域 `fetch`／預檢請求的相容性問題。桌面維持 Supabase JavaScript SDK 的官方上傳方法。本版仍只修改前端。
 
+V1.0.7 經實際 API 診斷確認目前 Storage Gateway 仍要求 Authorization，且 signed upload 最終會套用 anon INSERT RLS。所有裝置因此統一改為帶公開 anon Authorization 的 raw binary 上傳，並新增 P120 專屬窄範圍 Storage INSERT policy。既有部署只需執行 `database/10_P120_SignedUploadPolicyFix.sql`，不需重跑其他 SQL，也不需重新部署 Edge Function。
+
 ## 三、設定前端
 
 複製：
@@ -132,7 +135,6 @@ Anon／publishable key 本來就是前端公開金鑰；真正敏感的是 servi
 
 前端固定使用以下版本：
 
-- `@supabase/supabase-js@2.57.4`
 - `qrcode-generator@1.4.4`
 
 若 CDN 無法載入，網站會顯示錯誤或提示改用房間碼／分享網址。CSP 只允許本網站、Supabase及 jsDelivr所需連線。
@@ -143,4 +145,4 @@ Anon／publishable key 本來就是前端公開金鑰；真正敏感的是 servi
 
 ## 版本基準
 
-本 ZIP 為 **P120 FileCourier V1.0.4 — Official Origin Fix**。後續修改應從此版本延伸，並繼續遵守 P-SDS 與共用 Supabase Project隔離規範。
+本 ZIP 為 **P120 FileCourier V1.0.7 — Signed Upload RLS Compatibility**。後續修改應從此版本延伸，並繼續遵守 P-SDS 與共用 Supabase Project隔離規範。

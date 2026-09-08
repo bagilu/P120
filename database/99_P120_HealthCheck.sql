@@ -43,3 +43,18 @@ SELECT 'No P120 anon/authenticated policies' AS "CheckItem",
 
 SELECT 'P120CheckRateLimit exists' AS "CheckItem",
        (to_regprocedure('public."P120CheckRateLimit"(text,text,integer,integer)') IS NOT NULL) AS "Passed";
+
+SELECT 'P120CanUploadStorageObject exists' AS "CheckItem",
+       (to_regprocedure('public."P120CanUploadStorageObject"(text)') IS NOT NULL) AS "Passed";
+
+SELECT 'P120 Storage INSERT policy is narrowly scoped' AS "CheckItem",
+       EXISTS (
+         SELECT 1 FROM pg_policies
+         WHERE schemaname = 'storage'
+           AND tablename = 'objects'
+           AND policyname = 'PolP120SignedUploadInsert'
+           AND cmd = 'INSERT'
+           AND roles = ARRAY['anon']::name[]
+           AND with_check LIKE '%p120-temp-files%'
+           AND with_check LIKE '%P120CanUploadStorageObject%'
+       ) AS "Passed";

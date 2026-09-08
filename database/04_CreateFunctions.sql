@@ -70,3 +70,27 @@ $$;
 
 COMMENT ON FUNCTION public."P120CheckRateLimit"(text, text, integer, integer)
   IS 'P120-only atomic rate limiter; callable by service_role only';
+
+-- Storage INSERT policy 專用判斷：只接受 Edge Function 已建立且仍在期限內的
+-- P120 隨機物件路徑。SECURITY DEFINER 不回傳任何 transfer 或檔案資料。
+CREATE OR REPLACE FUNCTION public."P120CanUploadStorageObject"(p_object_name text)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public."TblP120File" AS f
+    JOIN public."TblP120Transfer" AS t
+      ON t."TransferID" = f."TransferID"
+    WHERE f."StorageObjectPath" = p_object_name
+      AND f."UploadStatus" = 'pending'
+      AND t."Status" = 'uploading'
+      AND t."UploadDeadlineAt" > now()
+  );
+$$;
+
+COMMENT ON FUNCTION public."P120CanUploadStorageObject"(text)
+  IS 'P120-only Storage INSERT guard; reveals only whether an unguessable pending object path is currently valid';

@@ -10,3 +10,6 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public."TblP120RateLimit" TO servi
 
 REVOKE ALL PRIVILEGES ON FUNCTION public."P120CheckRateLimit"(text, text, integer, integer) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public."P120CheckRateLimit"(text, text, integer, integer) TO service_role;
+
+REVOKE ALL PRIVILEGES ON FUNCTION public."P120CanUploadStorageObject"(text) FROM PUBLIC, authenticated;
+GRANT EXECUTE ON FUNCTION public."P120CanUploadStorageObject"(text) TO anon, service_role;
