@@ -1,4 +1,4 @@
-P120 FileCourier V1.0.5 — Mobile Upload Diagnostics
+P120 FileCourier V1.0.6 — Android XHR Upload Compatibility
 Build date: 2026-09-08
 Baseline: GitHub Pages + Supabase Database + private Storage + Edge Function
-Fix: mobile devices upload sequentially; Storage failures show a safe diagnostic status and reason; static resources use cache-busting version identifiers.
+Fix: Android and other touch devices use a signed XMLHttpRequest multipart upload without extra authorization headers; mobile uploads remain sequential and diagnostic errors remain enabled.

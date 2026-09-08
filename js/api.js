@@ -10,6 +10,8 @@ export class P120ApiError extends Error {
 export class P120Api {
   constructor(config) {
     this.config = config;
+    this.supabaseUrl = config.SUPABASE_URL.replace(/\/$/, "");
+    this.bucketName = config.STORAGE_BUCKET;
     this.functionUrl = `${config.SUPABASE_URL.replace(/\/$/, "")}/functions/v1/${config.EDGE_FUNCTION_NAME}`;
     this.storage = window.supabase
       .createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY, {
@@ -58,6 +60,9 @@ export class P120Api {
   }
 
   async uploadFile(path, signedToken, file) {
+    const coarsePointer = window.matchMedia?.("(pointer: coarse)")?.matches === true;
+    if (coarsePointer) return this.uploadFileWithXhr(path, signedToken, file);
+
     const { error } = await this.storage.uploadToSignedUrl(path, signedToken, file, {
       contentType: file.type || "application/octet-stream",
       cacheControl: "0"
@@ -78,6 +83,50 @@ export class P120Api {
         status
       );
     }
+  }
+
+  uploadFileWithXhr(path, signedToken, file) {
+    const encodedPath = [this.bucketName, ...String(path).split("/")]
+      .map((segment) => encodeURIComponent(segment))
+      .join("/");
+    const uploadUrl = new URL(`${this.supabaseUrl}/storage/v1/object/upload/sign/${encodedPath}`);
+    uploadUrl.searchParams.set("token", signedToken);
+
+    const formData = new FormData();
+    formData.append("cacheControl", "0");
+    formData.append("", file);
+
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", uploadUrl.toString(), true);
+      // 不自行設定 Content-Type 或授權標頭，讓 multipart boundary 由瀏覽器建立；
+      // signed upload token 已包含本次上傳所需權限。
+      xhr.timeout = 25 * 60 * 1000;
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) return resolve();
+        let detail = xhr.statusText || "Storage request failed";
+        try {
+          const body = JSON.parse(xhr.responseText || "{}");
+          detail = body.message || body.error || detail;
+        } catch { /* 使用安全的 HTTP 狀態訊息 */ }
+        const safeDetail = String(detail).replace(/[\r\n\t]+/g, " ").trim().slice(0, 160);
+        reject(new P120ApiError(
+          "UPLOAD_FAILED",
+          `「${file.name}」上傳失敗（HTTP ${xhr.status} · ${safeDetail}）。請重試；若仍失敗，請將括號內訊息提供給管理者。`,
+          xhr.status
+        ));
+      };
+      xhr.onerror = () => reject(new P120ApiError(
+        "UPLOAD_NETWORK_ERROR",
+        `「${file.name}」上傳失敗（手機無法與 Supabase Storage 建立上傳連線）。請切換 Wi-Fi／行動網路後重試。`
+      ));
+      xhr.ontimeout = () => reject(new P120ApiError(
+        "UPLOAD_TIMEOUT",
+        `「${file.name}」上傳逾時，請確認網路後重試。`
+      ));
+      xhr.onabort = () => reject(new P120ApiError("UPLOAD_ABORTED", `「${file.name}」上傳已中止。`));
+      xhr.send(formData);
+    });
   }
 
   completeTransfer(transferId, managementToken) {

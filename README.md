@@ -86,6 +86,8 @@ V1.0.3 起，前端不再把 publishable key 當作 Bearer JWT 傳送，因此�
 
 V1.0.5 改善 Android 等觸控裝置的上傳穩定性：手機採逐檔上傳，桌面仍可最多三檔並行；Storage 上傳失敗時會顯示經過濾的 HTTP 狀態與錯誤原因，方便定位問題。靜態資源亦加入版本識別，降低手機沿用舊快取的情況。本版不需重跑 SQL，也不需重新部署 Edge Function。
 
+V1.0.6 針對 Android Chrome 出現 `Failed to fetch` 的情況，讓觸控裝置改用 `XMLHttpRequest` 將 `multipart/form-data` 直接送至 signed upload URL，不額外附加 Authorization、API key、`x-upsert` 或手動 Content-Type，藉此避免手機對跨網域 `fetch`／預檢請求的相容性問題。桌面維持 Supabase JavaScript SDK 的官方上傳方法。本版仍只修改前端。
+
 ## 三、設定前端
 
 複製：
