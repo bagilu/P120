@@ -1,4 +1,4 @@
-P120 FileCourier V1.0.2 — Header Verification Update
+P120 FileCourier V1.0.4 — Official Origin Fix
 Build date: 2026-09-08
 Baseline: GitHub Pages + Supabase Database + private Storage + Edge Function
-Fix: removed the final punctuation from the header title and added a visible V1.0.2 footer marker.
+Fix: corrected the official P120 Origin to https://bagilu.github.io while preserving the P101 laboratory hyperlink.

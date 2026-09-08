@@ -24,11 +24,9 @@ export class P120Api {
     try {
       response = await fetch(this.functionUrl, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "apikey": this.config.SUPABASE_ANON_KEY,
-          "Authorization": `Bearer ${this.config.SUPABASE_ANON_KEY}`
-        },
+        // Function 已設定為公開入口，授權由 P120 的房間碼、管理 token、
+        // 短效期限與 rate limit 負責。使用 simple request 可避免瀏覽器的
+        // CORS preflight 被 Supabase gateway 誤擋，亦相容新版 publishable key。
         body: JSON.stringify({ action, ...payload })
       });
     } catch {

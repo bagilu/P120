@@ -48,16 +48,16 @@
 verify_jwt = false
 ```
 
-請從本專案根目錄部署，讓 CLI 同時讀取這個設定：
+請從本專案根目錄部署，並在指令中再次明確關閉 JWT 驗證：
 
 ```bash
-supabase functions deploy P120-transfer-api
+supabase functions deploy P120-transfer-api --no-verify-jwt
 ```
 
-正式網站使用 `https://tcubmdsbilab.github.io` 時，即使尚未建立自訂 secret，也有安全的預設 Origin。仍建議設定以下兩個伺服器端 secrets，讓設定明確且方便日後更換網域：
+P120 的正式網站為 `https://bagilu.github.io/P120/`，其 Origin `https://bagilu.github.io` 已固定列入允許來源，不會被自訂 secret 覆寫。其他網站可透過以下 secret 增加允許來源；另建議設定獨立 rate-limit salt：
 
 ```bash
-supabase secrets set P120_ALLOWED_ORIGINS=https://YOUR_GITHUB_USERNAME.github.io
+supabase secrets set P120_ALLOWED_ORIGINS=https://bagilu.github.io
 supabase secrets set P120_RATE_LIMIT_SALT=請換成至少32字元的隨機字串
 ```
 
@@ -77,9 +77,12 @@ https://example.github.io,https://files.example.edu.tw
 
 1. Edge Function 名稱完全等於 `P120-transfer-api`。
 2. JWT verification 已關閉。
-3. `P120_ALLOWED_ORIGINS` 若有設定，值為 `https://tcubmdsbilab.github.io`，不得加入 `/P120/` 或結尾斜線。
+3. 正式網站 Origin `https://bagilu.github.io` 已內建；請勿把 `/P120/` 路徑放進 Origin。
 4. `config.js` 的 `SUPABASE_URL` 與 `EDGE_FUNCTION_NAME` 正確。
-5. 修改後重新整理 GitHub Pages；Edge Function secret 儲存後會立即生效。
+5. 必須重新部署本版 Edge Function；只更新 GitHub Pages 前端並不足夠。
+6. 修改後以 `Ctrl+F5` 強制重新整理 GitHub Pages。
+
+V1.0.3 起，前端不再把 publishable key 當作 Bearer JWT 傳送，因此可避免 gateway 在新版公開金鑰格式下誤判；同時取消不必要的 CORS preflight。V1.0.4 將正式 Origin 修正為 `https://bagilu.github.io`。若來源未獲允許，伺服器會回傳明確錯誤，而不是被瀏覽器統一顯示為網路中斷。
 
 ## 三、設定前端
 
@@ -136,4 +139,4 @@ Anon／publishable key 本來就是前端公開金鑰；真正敏感的是 servi
 
 ## 版本基準
 
-本 ZIP 為 **P120 FileCourier V1.0 — Short-lived Multi-file Transfer**。後續修改應從此版本延伸，並繼續遵守 P-SDS 與共用 Supabase Project隔離規範。
+本 ZIP 為 **P120 FileCourier V1.0.4 — Official Origin Fix**。後續修改應從此版本延伸，並繼續遵守 P-SDS 與共用 Supabase Project隔離規範。

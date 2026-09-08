@@ -8,6 +8,7 @@ const UPLOAD_WINDOW_MS = 30 * 60 * 1000;
 const ROOM_LIFETIME_MS = 10 * 60 * 1000;
 const TOMBSTONE_MS = 3 * 60 * 60 * 1000;
 const CLEANUP_BATCH = 10;
+const OFFICIAL_GITHUB_ORIGIN = "https://bagilu.github.io";
 
 const ERROR_MESSAGES = Object.freeze({
   BAD_REQUEST: "請求內容不正確。",
@@ -35,26 +36,40 @@ class AppError extends Error {
   }
 }
 
-function getConfig() {
+function normalizeOrigin(value) {
+  try {
+    const url = new URL(String(value || "").trim());
+    return ["http:", "https:"].includes(url.protocol) ? url.origin : "";
+  } catch {
+    return "";
+  }
+}
+
+function getAllowedOrigins() {
+  const configured = (Deno.env.get("P120_ALLOWED_ORIGINS") || "")
+    .split(",")
+    .map(normalizeOrigin)
+    .filter(Boolean);
+  // 正式 GitHub Pages Origin 永遠保留；自訂 secret 只能增加來源，不會誤覆寫正式站。
+  return [...new Set([OFFICIAL_GITHUB_ORIGIN, ...configured])];
+}
+
+function getConfig(allowedOrigins) {
   const url = Deno.env.get("SUPABASE_URL");
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  // P120 的正式 GitHub Pages 網域可直接運作；如改用其他網域，再以 secret 覆寫。
+  // P120 的正式 GitHub Pages 網域可直接運作；其他網域以 secret 增加。
   const rateSalt = Deno.env.get("P120_RATE_LIMIT_SALT") || serviceKey || "";
-  const allowedOrigins = (Deno.env.get("P120_ALLOWED_ORIGINS") || "https://tcubmdsbilab.github.io")
-    .split(",")
-    .map((value) => value.trim().replace(/\/$/, ""))
-    .filter(Boolean);
   if (!url || !serviceKey || !rateSalt || !allowedOrigins.length) {
     throw new AppError("CONFIG_ERROR", 503);
   }
   return { url, serviceKey, rateSalt, allowedOrigins };
 }
 
-function corsHeaders(origin, allowedOrigins) {
-  const normalized = String(origin || "").replace(/\/$/, "");
+function corsHeaders(origin, allowedOrigins, exposeRejectedError = false) {
+  const normalized = normalizeOrigin(origin);
   const allowed = normalized && allowedOrigins.includes(normalized);
   return {
-    "Access-Control-Allow-Origin": allowed ? normalized : "null",
+    "Access-Control-Allow-Origin": allowed || exposeRejectedError ? (normalized || "null") : "null",
     "Access-Control-Allow-Headers": "authorization, apikey, content-type",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Access-Control-Max-Age": "86400",
@@ -475,17 +490,32 @@ async function cancelTransfer(supabase, payload) {
 }
 
 Deno.serve(async (request) => {
-  let config;
-  try { config = getConfig(); } catch (error) { return safeErrorResponse(error, {}); }
   const origin = request.headers.get("Origin") || "";
-  const cors = corsHeaders(origin, config.allowedOrigins);
+  const allowedOrigins = getAllowedOrigins();
+  const cors = corsHeaders(origin, allowedOrigins);
+  let config;
+  try { config = getConfig(allowedOrigins); } catch (error) {
+    return safeErrorResponse(error, corsHeaders(origin, allowedOrigins, true));
+  }
 
   if (request.method === "OPTIONS") {
-    if (origin && cors["Access-Control-Allow-Origin"] === "null") return jsonResponse({ ok: false }, 403, cors);
+    if (origin && cors["Access-Control-Allow-Origin"] === "null") {
+      return jsonResponse(
+        { ok: false, error: { code: "ORIGIN_NOT_ALLOWED", message: "此網站來源未獲允許。" } },
+        403,
+        corsHeaders(origin, allowedOrigins, true)
+      );
+    }
     return new Response(null, { status: 204, headers: cors });
   }
   if (request.method !== "POST") return jsonResponse({ ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "僅接受 POST 請求。" } }, 405, cors);
-  if (origin && cors["Access-Control-Allow-Origin"] === "null") return jsonResponse({ ok: false, error: { code: "ORIGIN_NOT_ALLOWED", message: "此網站來源未獲允許。" } }, 403, cors);
+  if (origin && cors["Access-Control-Allow-Origin"] === "null") {
+    return jsonResponse(
+      { ok: false, error: { code: "ORIGIN_NOT_ALLOWED", message: "此網站來源未獲允許。" } },
+      403,
+      corsHeaders(origin, allowedOrigins, true)
+    );
+  }
   const contentLength = Number(request.headers.get("content-length") || 0);
   if (contentLength > 65536) return safeErrorResponse(new AppError("BAD_REQUEST", 413), cors);
 
