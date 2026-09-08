@@ -1,4 +1,4 @@
-P120 FileCourier V1.0.4 — Official Origin Fix
+P120 FileCourier V1.0.5 — Mobile Upload Diagnostics
 Build date: 2026-09-08
 Baseline: GitHub Pages + Supabase Database + private Storage + Edge Function
-Fix: corrected the official P120 Origin to https://bagilu.github.io while preserving the P101 laboratory hyperlink.
+Fix: mobile devices upload sequentially; Storage failures show a safe diagnostic status and reason; static resources use cache-busting version identifiers.

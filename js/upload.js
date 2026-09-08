@@ -1,4 +1,4 @@
-import { LIMITS, createManagementToken, fileExtension, formatBytes, makeShareUrl, renderQrCode, showToast, startCountdown } from "./utils.js";
+import { LIMITS, createManagementToken, fileExtension, formatBytes, makeShareUrl, renderQrCode, showToast, startCountdown } from "./utils.js?v=1.0.5";
 
 export class Uploader {
   constructor(api) {
@@ -166,7 +166,10 @@ export class Uploader {
           this.updateProgress(completed);
         }
       };
-      await Promise.all(Array.from({ length: Math.min(3, uploads.length) }, worker));
+      // 行動裝置與行動網路對多個同時上傳較敏感；觸控裝置採逐檔傳送。
+      const coarsePointer = window.matchMedia?.("(pointer: coarse)")?.matches === true;
+      const uploadConcurrency = coarsePointer ? 1 : Math.min(3, uploads.length);
+      await Promise.all(Array.from({ length: uploadConcurrency }, worker));
       if (this.cancelRequested || this.activeRunId !== runId) return;
 
       this.progressText.textContent = "正在核對檔案大小與完整性…";

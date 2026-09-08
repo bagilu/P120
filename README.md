@@ -84,6 +84,8 @@ https://example.github.io,https://files.example.edu.tw
 
 V1.0.3 起，前端不再把 publishable key 當作 Bearer JWT 傳送，因此可避免 gateway 在新版公開金鑰格式下誤判；同時取消不必要的 CORS preflight。V1.0.4 將正式 Origin 修正為 `https://bagilu.github.io`。若來源未獲允許，伺服器會回傳明確錯誤，而不是被瀏覽器統一顯示為網路中斷。
 
+V1.0.5 改善 Android 等觸控裝置的上傳穩定性：手機採逐檔上傳，桌面仍可最多三檔並行；Storage 上傳失敗時會顯示經過濾的 HTTP 狀態與錯誤原因，方便定位問題。靜態資源亦加入版本識別，降低手機沿用舊快取的情況。本版不需重跑 SQL，也不需重新部署 Edge Function。
+
 ## 三、設定前端
 
 複製：

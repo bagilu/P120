@@ -62,7 +62,22 @@ export class P120Api {
       contentType: file.type || "application/octet-stream",
       cacheControl: "0"
     });
-    if (error) throw new P120ApiError("UPLOAD_FAILED", `「${file.name}」上傳失敗，請重試。`);
+    if (error) {
+      const rawDetail = String(error.message || error.error || "Storage request failed")
+        .replace(/https?:\/\/\S+/gi, "[網址已隱藏]")
+        .replace(/[A-Za-z0-9_-]{80,}/g, "[識別碼已隱藏]")
+        .replace(/[\r\n\t]+/g, " ")
+        .trim()
+        .slice(0, 160);
+      const status = Number(error.statusCode || error.status || 0);
+      const diagnostic = `${status ? `HTTP ${status} · ` : ""}${rawDetail}`;
+      console.error("P120_STORAGE_UPLOAD_FAILED", { status, detail: rawDetail, fileType: file.type, fileSize: file.size });
+      throw new P120ApiError(
+        "UPLOAD_FAILED",
+        `「${file.name}」上傳失敗（${diagnostic}）。請重試；若仍失敗，請將括號內訊息提供給管理者。`,
+        status
+      );
+    }
   }
 
   completeTransfer(transferId, managementToken) {
