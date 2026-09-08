@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="P120 檔案快遞：免登入，以六位數房間碼或 QR Code 傳送短效檔案。">
+  <meta name="theme-color" content="#0b2a4a">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://*.supabase.co wss://*.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests">
+  <title>P120 檔案快遞</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="brand-bar">
+      <span>慈濟大學經營管理學系</span>
+      <a href="https://tcubmdsbilab.github.io/P101/" target="_blank" rel="noopener noreferrer">好玩實驗室</a>
+      <span>作品。</span>
+    </div>
+  </header>
+
+  <main class="page-shell">
+    <section class="product-heading" aria-labelledby="page-title">
+      <div class="product-mark" aria-hidden="true">
+        <svg viewBox="0 0 48 48" role="img">
+          <path d="M8 15.5 24 6l16 9.5v17L24 42 8 32.5z" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linejoin="round"/>
+          <path d="m8 15.5 16 9.3 16-9.3M24 24.8V42" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linejoin="round"/>
+          <path d="m18 14.5 6-3.4 6 3.4-6 3.5z" fill="currentColor"/>
+        </svg>
+      </div>
+      <div>
+        <p class="eyebrow">P120</p>
+        <h1 id="page-title">檔案快遞</h1>
+        <p>十分鐘的臨時檔案房間，不需登入。</p>
+      </div>
+      <div class="expiry-chip"><strong>10</strong><span>分鐘有效</span></div>
+    </section>
+
+    <noscript><div class="global-alert error">此網站需要啟用 JavaScript 才能使用。</div></noscript>
+    <div id="config-alert" class="global-alert error" role="alert" hidden></div>
+    <div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="true"></div>
+
+    <section class="workspace-grid" aria-label="檔案快遞操作區">
+      <article class="panel receive-panel" aria-labelledby="receive-title">
+        <div class="panel-number" aria-hidden="true">01</div>
+        <div class="panel-heading">
+          <div class="panel-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M12 3v12m0 0 5-5m-5 5-5-5M5 19h14"/></svg>
+          </div>
+          <div>
+            <h2 id="receive-title">接收檔案</h2>
+            <p>輸入對方提供的六位數房間碼。</p>
+          </div>
+        </div>
+
+        <form id="room-form" class="room-form" novalidate>
+          <label for="room-code">房間碼</label>
+          <div class="code-input-wrap">
+            <input id="room-code" name="room-code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000" aria-describedby="room-hint" required>
+            <button id="lookup-button" class="button primary" type="submit">
+              <span>查看檔案</span>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+            </button>
+          </div>
+          <p id="room-hint" class="field-hint">掃描 QR Code 時會自動帶入，不需再次輸入。</p>
+        </form>
+
+        <div id="room-loading" class="loading-block" hidden>
+          <span class="spinner" aria-hidden="true"></span>
+          <span>正在尋找檔案房間…</span>
+        </div>
+
+        <section id="room-result" class="room-result" aria-live="polite" hidden>
+          <div class="room-result-head">
+            <div>
+              <span class="status-label">房間開放中</span>
+              <strong id="result-code" class="result-code"></strong>
+            </div>
+            <div class="countdown" aria-label="剩餘有效時間">
+              <span>剩餘</span>
+              <strong id="receive-countdown">10:00</strong>
+            </div>
+          </div>
+          <div id="receive-file-list" class="file-list compact"></div>
+          <button id="download-all-button" class="button secondary full" type="button">全部下載</button>
+        </section>
+
+        <div id="room-empty" class="empty-state" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16v12H4zM8 4h8v3M9 12h6"/></svg>
+          <p id="room-empty-message">找不到此檔案房間。</p>
+        </div>
+      </article>
+
+      <article class="panel send-panel" aria-labelledby="send-title">
+        <div class="panel-number" aria-hidden="true">02</div>
+        <div class="panel-heading">
+          <div class="panel-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M12 21V9m0 0 5 5m-5-5-5 5M5 5h14"/></svg>
+          </div>
+          <div>
+            <h2 id="send-title">傳送檔案</h2>
+            <p>選取一個或多個檔案，建立臨時房間。</p>
+          </div>
+        </div>
+
+        <div id="send-select-state">
+          <input id="file-input" type="file" multiple hidden>
+          <button id="drop-zone" class="drop-zone" type="button">
+            <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 32V12m0 0 8 8m-8-8-8 8M10 37h28"/></svg>
+            <strong>選取檔案</strong>
+            <span>也可以將檔案拖曳到這裡</span>
+          </button>
+
+          <div class="limit-strip" aria-label="上傳限制">
+            <span><strong>20</strong> 個檔案</span>
+            <span><strong>50 MB</strong> 單檔</span>
+            <span><strong>100 MB</strong> 合計</span>
+          </div>
+
+          <div id="selection-summary" class="selection-summary" hidden>
+            <div class="summary-line">
+              <span id="selected-count">0／20 個</span>
+              <span id="selected-size">0／100 MB</span>
+            </div>
+            <div class="meter" aria-hidden="true"><span id="size-meter"></span></div>
+            <div id="selected-file-list" class="file-list"></div>
+            <button id="upload-button" class="button primary full" type="button">開始上傳</button>
+          </div>
+        </div>
+
+        <section id="upload-progress-state" class="upload-state" hidden>
+          <div class="upload-state-title">
+            <span class="spinner" aria-hidden="true"></span>
+            <div><strong>正在傳送檔案</strong><span id="upload-progress-text">準備中…</span></div>
+          </div>
+          <div class="meter large" aria-hidden="true"><span id="upload-meter"></span></div>
+          <div id="upload-file-list" class="file-list compact"></div>
+          <button id="cancel-upload-button" class="button ghost full" type="button">取消此次傳送</button>
+        </section>
+
+        <section id="upload-complete-state" class="complete-state" hidden>
+          <div class="success-badge" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg></div>
+          <p class="status-label">檔案已送達房間</p>
+          <div id="complete-code" class="complete-code"></div>
+          <p class="code-caption">請將房間碼或 QR Code 提供給接收者</p>
+          <div id="qr-code" class="qr-code" aria-label="房間 QR Code"></div>
+          <div class="share-row">
+            <input id="share-url" type="text" readonly aria-label="分享網址">
+            <button id="copy-url-button" class="button secondary" type="button">複製</button>
+          </div>
+          <div class="complete-meta">
+            <span id="complete-summary"></span>
+            <span>剩餘 <strong id="send-countdown">10:00</strong></span>
+          </div>
+          <button id="new-transfer-button" class="button ghost full" type="button">傳送另一批檔案</button>
+        </section>
+      </article>
+    </section>
+
+    <section class="privacy-note" aria-label="使用提醒">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.5 2.8 8.1 7 10 4.2-1.9 7-5.5 7-10V6zM9 12l2 2 4-4"/></svg>
+      <p><strong>短效分享，不等於機密傳輸。</strong>請勿上傳敏感、機密或含個人資料的檔案；只下載可信來源提供的內容。</p>
+    </section>
+  </main>
+
+  <footer>
+    <span>P120 檔案快遞</span>
+    <span>檔案完成上傳後僅可下載 10 分鐘</span>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js" crossorigin="anonymous"></script>
+  <script src="config.js"></script>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
