@@ -1,21 +1,21 @@
-# P120-transfer-api
+# P120-transfer-api V1.1.0
 
-單一 P120 Edge Function，以 JSON body 的 `action` 分派：
+公開 JSON actions：
 
-- `create-transfer`
-- `complete-transfer`
-- `cancel-transfer`
-- `lookup-transfer`
+- `create-room`
+- `lookup-room`
+- `update-note`
+- `prepare-upload`
+- `complete-upload`
+- `cancel-upload`
 - `create-download-url`
 
-必要 secrets：
+Edge Function 使用伺服器端 `service_role` 呼叫 P120 專屬 PostgreSQL RPC；程式中不得使用 `client.from()` 或 `supabase.from()`。Private Storage 的列出、簽署下載及清理由 Edge Function 執行。
 
-- `P120_ALLOWED_ORIGINS`：額外允許的網站 Origin，逗號分隔；程式會自動只取 URL 的 Origin。P120 正式站的 Origin `https://bagilu.github.io` 永遠保留，不會被此 secret 覆寫。
-- `P120_RATE_LIMIT_SALT`：建議 32 字元以上的隨機值；未設定時使用伺服器端既有 secret衍生來源雜湊。
+部署：
 
-Supabase 平台提供：
+```bash
+supabase functions deploy P120-transfer-api --no-verify-jwt
+```
 
-- `SUPABASE_URL`
-- `SUPABASE_SERVICE_ROLE_KEY`
-
-根層 `supabase/config.toml` 設定本 Function 使用 `verify_jwt = false`；部署時亦應執行 `supabase functions deploy P120-transfer-api --no-verify-jwt`。每次建立／查詢／下載仍由 P120 自己的 rate limit、房間狀態、management token及 10 分鐘效期控制。資料庫與 Storage 的 anon直接權限均保持關閉。
+必要環境由 Supabase 提供：`SUPABASE_URL`、`SUPABASE_SERVICE_ROLE_KEY`。建議 secrets：`P120_ALLOWED_ORIGINS`、`P120_RATE_LIMIT_SALT`。不得將 service role key 放入前端或 ZIP。

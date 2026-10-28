@@ -39,6 +39,27 @@ else
   echo 'PASS: 程式碼未引用其他 P 系列資料表'
 fi
 
+if grep -RPEiq "\\.from\\(" "$project_dir/js" 2>/dev/null; then
+  echo 'FAIL: 前端 JavaScript 發現直接 table/view 存取'
+  failed=1
+else
+  echo 'PASS: 前端 JavaScript 未直接存取 table/view'
+fi
+
+if grep -RPEiq "client\\.from\\(|supabase\\.from\\(" "$project_dir/supabase/functions" 2>/dev/null; then
+  echo 'FAIL: Edge Function 發現直接資料表存取，應改用 P120 RPC'
+  failed=1
+else
+  echo 'PASS: Edge Function 資料庫交換經 P120 RPC'
+fi
+
+if grep -RqsE 'V1\.1\.0' "$project_dir/index.html" && grep -RqsE 'v=1\.1\.0' "$project_dir/index.html" "$project_dir/js/app.js"; then
+  echo 'PASS: Web Version 與 cache busting 為 V1.1.0'
+else
+  echo 'FAIL: Web Version 或 cache busting 未同步'
+  failed=1
+fi
+
 if grep -Rqs 'SUPABASE_SERVICE_ROLE_KEY[[:space:]]*:' "$project_dir"/config*.js 2>/dev/null; then
   echo 'FAIL: 前端設定檔疑似包含 service role key 欄位'
   failed=1

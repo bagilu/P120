@@ -1,150 +1,86 @@
-# P120 檔案快遞 V1.0
+# P120 檔案快遞 V1.1.0
 
-免登入的短效檔案傳送網站。上傳者可一次選取最多 20 個檔案，單檔上限 50 MiB、合計上限 100 MiB；完成上傳後產生六位數房間碼、分享網址與 QR Code。接收者可在 10 分鐘內下載，逾時後由伺服器立即拒絕新下載。
+免登入的短效共享空間。使用者先按「開始分享」，系統立即產生 QR Code 與六位數分享碼；加入者可在同一畫面共同輸入文字、交換網址、上傳及下載檔案。第一筆非空白文字或第一批檔案送出後開始 10 分鐘倒數；未開始使用的空白空間 5 分鐘後清除。
 
-頁首品牌為「慈濟大學經營管理學系 好玩實驗室 作品」，「好玩實驗室」連至 <https://tcubmdsbilab.github.io/P101/>。
+正式網址：<https://bagilu.github.io/P120/>
 
-## 架構
+## 主要流程
 
-- GitHub Pages：靜態前端。
-- Supabase Database：P120 房間、檔案 metadata與短期 rate limit。
-- Supabase Storage：`p120-temp-files` private bucket。
-- Supabase Edge Function：`P120-transfer-api`。
-- 不使用 Supabase Auth，前端 session 不持久化。
-- 前端不直接讀寫任何 P120 資料表，也不能列出 bucket。
+- 發起者：進入 P120 → 開始分享 → 取得 QR Code 與分享碼。
+- 手機加入者：掃描 QR Code，直接進入相同空間。
+- 桌機加入者：前往固定網址，輸入六位數分享碼。
+- 完整 `?code=` 連結只供 QR Code 與「複製邀請連結」使用，不要求人工輸入。
+- 共筆採短週期同步與 revision 衝突保護；不直接訂閱資料表。
+- 空間內任何加入者都可共享文字及檔案，因此分享碼應只交給可信對象。
 
-## 部署前準備
+## 限制
 
-1. 使用既有 Supabase Project時，先備份重要設定。
-2. 確認本 ZIP 中沒有實際 `config.js`、service role key或其他 secret。
-3. 先執行 `bash scripts/check-p120-scope.sh`。
-4. SQL 請依 `database/README.md` 所列順序逐一執行，不要把其他專案 SQL 混入。
+- 共筆最多 5,000 字。
+- 每個空間最多 20 個檔案。
+- 單檔上限 50 MiB，合計上限 100 MiB。
+- 內容啟用後保留 10 分鐘。
+- 不適合敏感、機密或含個人資料的內容。
 
-## 一、建立資料庫與 Storage
+## 架構與 SBI-P-SDS v3.4
 
-在 Supabase SQL Editor依序執行：
+- GitHub Pages：靜態 HTML／CSS／JavaScript，無 build pipeline。
+- Supabase Edge Function：唯一公開業務入口，負責 CORS、輸入驗證、rate limit 與 private Storage。
+- PostgreSQL：Edge Function 僅呼叫名稱含 P120 的 RPC，不直接操作資料表。
+- Browser：不使用 `.from()`，不直接讀寫 Table／View。
+- `TblP120Transfer`、`TblP120File`、`TblP120RateLimit` 全部啟用並 FORCE RLS。
+- anon／authenticated 對 P120 資料表及業務 RPC 均無權限。
+- Storage bucket `p120-temp-files` 為 private；anon 僅能 INSERT 到後端預先建立且仍有效的不可猜測路徑。
+- Edge Function 的 `service_role` 只存在 Supabase 伺服器環境，不得放入 GitHub、ZIP 或瀏覽器。
 
-1. `database/01_CreateTables.sql`
-2. `database/02_CreateIndexes.sql`
-3. `database/03_CreateViews.sql`
-4. `database/04_CreateFunctions.sql`
-5. `database/05_EnableRLS.sql`
-6. `database/06_CreatePolicies.sql`
-7. `database/07_GrantPermissions.sql`
-8. `database/08_SeedData.sql`
-9. `database/09_CreateStorage.sql`
-10. `database/10_P120_SignedUploadPolicyFix.sql`
-11. `database/90_P120_Permissions.sql`
+## 升級既有 V1.0.8
 
-最後執行 `database/99_P120_HealthCheck.sql`。所有 `Passed` 應為 `true`，三張資料表的 `RlsEnabled` 與 `RlsForced` 也應為 `true`。
-
-## 二、部署 Edge Function
-
-使用 Supabase CLI：
-
-本專案已在根層 `supabase/config.toml` 設定：
-
-```toml
-[functions.P120-transfer-api]
-verify_jwt = false
-```
-
-請從本專案根目錄部署，並在指令中再次明確關閉 JWT 驗證：
+1. 備份並確認目前正式版本。
+2. 在 SQL Editor 執行 `database/11_P120_SharedWorkspaceMigration.sql`。
+3. 執行 `database/90_P120_Permissions.sql`。
+4. 執行 `database/99_P120_HealthCheck.sql`，確認所有檢查通過。
+5. 重新部署 `P120-transfer-api`：
 
 ```bash
 supabase functions deploy P120-transfer-api --no-verify-jwt
 ```
 
-P120 的正式網站為 `https://bagilu.github.io/P120/`，其 Origin `https://bagilu.github.io` 已固定列入允許來源，不會被自訂 secret 覆寫。其他網站可透過以下 secret 增加允許來源；另建議設定獨立 rate-limit salt：
+6. 以新版靜態檔案更新 GitHub Pages；保留正式環境既有 `config.js`，不要用 ZIP 內容覆蓋。
+
+全新部署請依 `database/README.md` 執行 `01` 至 `11`、`90`，最後執行 `99`。
+
+## 前端設定
+
+ZIP 只提供 `config-sample.js`。部署時複製為 `config.js`，填入公開 Supabase URL 與 anon／publishable key：
+
+```javascript
+window.P120_CONFIG = Object.freeze({
+  SUPABASE_URL: "https://YOUR_PROJECT_REF.supabase.co",
+  SUPABASE_ANON_KEY: "YOUR_SUPABASE_ANON_OR_PUBLISHABLE_KEY",
+  EDGE_FUNCTION_NAME: "P120-transfer-api",
+  STORAGE_BUCKET: "p120-temp-files"
+});
+```
+
+`config.js` 不納入 ZIP。禁止放入 `service_role`、secret key 或其他機密。
+
+## Edge Function secrets
 
 ```bash
 supabase secrets set P120_ALLOWED_ORIGINS=https://bagilu.github.io
 supabase secrets set P120_RATE_LIMIT_SALT=請換成至少32字元的隨機字串
 ```
 
-`P120_ALLOWED_ORIGINS` 填 Origin，不含 `/P120/` 路徑。若有多個正式來源，以逗號分隔，例如：
+正式 Origin `https://bagilu.github.io` 已內建；自訂 secret 只會增加允許來源。
 
-```text
-https://example.github.io,https://files.example.edu.tw
+## 交付前檢查
+
+```bash
+bash scripts/check-p120-scope.sh
 ```
 
-若暫時沒有設定 `P120_RATE_LIMIT_SALT`，程式會以伺服器端 service role key 作為不可見的雜湊 salt，不會傳到瀏覽器。Supabase 會自動提供 `SUPABASE_URL` 與 `SUPABASE_SERVICE_ROLE_KEY` 給 Edge Function。不要把 service role key 放入 GitHub、`config.js` 或任何瀏覽器檔案。
+另須在 staging／正式 Supabase 以 anon、authenticated、service_role 分別驗證 RPC、直接 table endpoint、Storage policy、過期拒絕及清理行為。此類執行身分測試無法由離線 ZIP 完整取代。
 
-若使用 Dashboard部署，Function 名稱必須為 `P120-transfer-api`，並在 Function 設定中明確關閉 JWT verification；同時可在 Edge Function Secrets設定上述兩個 P120 secrets。若 Dashboard部署時沒有套用 `supabase/config.toml`，請手動關閉 JWT verification或改以 CLI 從專案根目錄重新部署。
+## 版本
 
-### 出現「無法連接檔案服務」時
-
-依序確認：
-
-1. Edge Function 名稱完全等於 `P120-transfer-api`。
-2. JWT verification 已關閉。
-3. 正式網站 Origin `https://bagilu.github.io` 已內建；請勿把 `/P120/` 路徑放進 Origin。
-4. `config.js` 的 `SUPABASE_URL` 與 `EDGE_FUNCTION_NAME` 正確。
-5. 必須重新部署本版 Edge Function；只更新 GitHub Pages 前端並不足夠。
-6. 修改後以 `Ctrl+F5` 強制重新整理 GitHub Pages。
-
-V1.0.3 起，前端不再把 publishable key 當作 Bearer JWT 傳送，因此可避免 gateway 在新版公開金鑰格式下誤判；同時取消不必要的 CORS preflight。V1.0.4 將正式 Origin 修正為 `https://bagilu.github.io`。若來源未獲允許，伺服器會回傳明確錯誤，而不是被瀏覽器統一顯示為網路中斷。
-
-V1.0.5 改善 Android 等觸控裝置的上傳穩定性：手機採逐檔上傳，桌面仍可最多三檔並行；Storage 上傳失敗時會顯示經過濾的 HTTP 狀態與錯誤原因，方便定位問題。靜態資源亦加入版本識別，降低手機沿用舊快取的情況。本版不需重跑 SQL，也不需重新部署 Edge Function。
-
-V1.0.6 針對 Android Chrome 出現 `Failed to fetch` 的情況，讓觸控裝置改用 `XMLHttpRequest` 將 `multipart/form-data` 直接送至 signed upload URL，不額外附加 Authorization、API key、`x-upsert` 或手動 Content-Type，藉此避免手機對跨網域 `fetch`／預檢請求的相容性問題。桌面維持 Supabase JavaScript SDK 的官方上傳方法。本版仍只修改前端。
-
-V1.0.7 經實際 API 診斷確認目前 Storage Gateway 仍要求 Authorization，且 signed upload 最終會套用 anon INSERT RLS。所有裝置因此統一改為帶公開 anon Authorization 的 raw binary 上傳，並新增 P120 專屬窄範圍 Storage INSERT policy。既有部署只需執行 `database/10_P120_SignedUploadPolicyFix.sql`，不需重跑其他 SQL，也不需重新部署 Edge Function。
-
-V1.0.8 經正式 Supabase 專案端對端實測，改用標準 `/storage/v1/object/{bucket}/{path}` raw-binary endpoint，並同時送出公開 anon `Authorization` 與 `apikey`。測試已通過「建立房間 → Storage HTTP 200 → 完成上傳 → 立即取消清理」。此調整避開 signed-upload endpoint 在桌機出現完成狀態不同步、Android 直接連線失敗的問題。已完成 V1.0.7 SQL 修復者只需更新 GitHub Pages 前端，不需重跑 SQL 或重新部署 Edge Function。
-
-## 三、設定前端
-
-複製：
-
-```text
-config-sample.js → config.js
-```
-
-只填入 Supabase URL及 anon／publishable key。`config.js` 範例：
-
-```javascript
-window.P120_CONFIG = Object.freeze({
-  SUPABASE_URL: "https://YOUR_PROJECT_REF.supabase.co",
-  SUPABASE_ANON_KEY: "YOUR_PUBLIC_ANON_OR_PUBLISHABLE_KEY",
-  EDGE_FUNCTION_NAME: "P120-transfer-api",
-  STORAGE_BUCKET: "p120-temp-files"
-});
-```
-
-Anon／publishable key 本來就是前端公開金鑰；真正敏感的是 service role key，後者絕不可出現在前端。
-
-## 四、部署 GitHub Pages
-
-將專案檔案放在 GitHub repository根目錄或對應的 `/P120/` 目錄，並確保 `index.html` 與實際 `config.js` 位於同一層。啟用 GitHub Pages後，以正式網址測試：
-
-- 首頁可載入且沒有設定錯誤。
-- 可上傳兩個小型測試檔案。
-- QR Code網址含 `?code=六位數`。
-- 手機掃碼可顯示相同檔案清單。
-- 下載內容與原檔一致。
-- 完成後 10 分鐘，伺服器拒絕新下載。
-
-## 清理行為
-
-- 建立新房間與查詢房間時，Edge Function會小批次清理過期 transfer。
-- 到期的房間即使實體物件尚未刪除，也不能再取得下載網址。
-- 放棄上傳 30 分鐘後視為過期。
-- 刪除實體物件只使用 Storage API，不直接刪除 `storage.objects` metadata。
-- Signed upload token可能比 P120 房間活得更久，因此刪除後保留 3 小時 tombstone並重複清理遲來上傳。
-
-## CDN 依賴
-
-前端固定使用以下版本：
-
-- `qrcode-generator@1.4.4`
-
-若 CDN 無法載入，網站會顯示錯誤或提示改用房間碼／分享網址。CSP 只允許本網站、Supabase及 jsDelivr所需連線。
-
-## 安全邊界
-
-六位數房間碼重視便利性，不是高強度密碼。本系統有短效期限及基本 rate limit，但不適合機密、敏感或含個人資料的內容，也不包含病毒掃描或端對端加密。
-
-## 版本基準
-
-本 ZIP 為 **P120 FileCourier V1.0.8 — Standard Raw-Binary Upload Fix**。後續修改應從此版本延伸，並繼續遵守 P-SDS 與共用 Supabase Project隔離規範。
+**P120 FileCourier V1.1.0 — Shared Workspace**
+規範：SBI-P-SDS v3.4（2026-10-20）

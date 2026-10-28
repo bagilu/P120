@@ -14,6 +14,9 @@ GRANT EXECUTE ON FUNCTION public."P120CheckRateLimit"(text, text, integer, integ
 REVOKE ALL PRIVILEGES ON FUNCTION public."P120CanUploadStorageObject"(text) FROM PUBLIC, authenticated;
 GRANT EXECUTE ON FUNCTION public."P120CanUploadStorageObject"(text) TO anon, service_role;
 
+REVOKE ALL PRIVILEGES ON FUNCTION public."P120CreateRoom"(uuid,text,text),public."P120GetRoom"(text),public."P120UpdateNote"(text,text,bigint),public."P120PrepareUpload"(text,uuid,jsonb),public."P120CompleteUpload"(text,uuid,jsonb),public."P120CancelUpload"(text,uuid),public."P120GetDownloadFile"(text,uuid),public."P120ListCleanupRooms"(integer),public."P120ListRoomObjects"(uuid),public."P120FinalizeRoomDelete"(uuid),public."P120PurgeDeletedRooms"() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public."P120CreateRoom"(uuid,text,text),public."P120GetRoom"(text),public."P120UpdateNote"(text,text,bigint),public."P120PrepareUpload"(text,uuid,jsonb),public."P120CompleteUpload"(text,uuid,jsonb),public."P120CancelUpload"(text,uuid),public."P120GetDownloadFile"(text,uuid),public."P120ListCleanupRooms"(integer),public."P120ListRoomObjects"(uuid),public."P120FinalizeRoomDelete"(uuid),public."P120PurgeDeletedRooms"() TO service_role;
+
 UPDATE storage.buckets
 SET public = false,
     file_size_limit = 52428800,

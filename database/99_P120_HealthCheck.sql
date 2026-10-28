@@ -58,3 +58,21 @@ SELECT 'P120 Storage INSERT policy is narrowly scoped' AS "CheckItem",
            AND with_check LIKE '%p120-temp-files%'
            AND with_check LIKE '%P120CanUploadStorageObject%'
        ) AS "Passed";
+
+SELECT 'V1.1 shared note columns exist' AS "CheckItem",
+       EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='TblP120Transfer' AND column_name='NoteRevision') AS "Passed";
+
+SELECT 'V1.1 RPC functions exist' AS "CheckItem",
+       to_regprocedure('public."P120CreateRoom"(uuid,text,text)') IS NOT NULL
+       AND to_regprocedure('public."P120GetRoom"(text)') IS NOT NULL
+       AND to_regprocedure('public."P120UpdateNote"(text,text,bigint)') IS NOT NULL
+       AND to_regprocedure('public."P120PrepareUpload"(text,uuid,jsonb)') IS NOT NULL AS "Passed";
+
+SELECT 'anon cannot execute V1.1 room RPC' AS "CheckItem",
+       NOT has_function_privilege('anon','public."P120GetRoom"(text)','EXECUTE') AS "Passed";
+
+SELECT 'authenticated cannot execute V1.1 room RPC' AS "CheckItem",
+       NOT has_function_privilege('authenticated','public."P120GetRoom"(text)','EXECUTE') AS "Passed";
+
+SELECT 'service_role can execute V1.1 room RPC' AS "CheckItem",
+       has_function_privilege('service_role','public."P120GetRoom"(text)','EXECUTE') AS "Passed";

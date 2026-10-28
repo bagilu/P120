@@ -1,8 +1,16 @@
-# P120 Database 部署說明
+# P120 Database 部署說明（V1.1.0）
 
 ## 執行順序
 
-全新部署依檔名前綴由小到大執行 `01` 至 `10`，再執行 `90_P120_Permissions.sql`；最後單獨執行 `99_P120_HealthCheck.sql` 驗證。既有 V1.0.6 部署只需執行 `10_P120_SignedUploadPolicyFix.sql`。
+全新部署依檔名前綴由小到大執行 `01` 至 `11`，再執行 `90_P120_Permissions.sql`；最後單獨執行 `99_P120_HealthCheck.sql` 驗證。
+
+既有 V1.0.8 正式環境升級時，只執行：
+
+1. `11_P120_SharedWorkspaceMigration.sql`
+2. `90_P120_Permissions.sql`
+3. `99_P120_HealthCheck.sql`（唯讀檢查）
+
+不要重跑 `01` 至 `10`，也不要重建既有資料表。
 
 ## P-SDS 範圍聲明
 
@@ -12,7 +20,7 @@
 - `public."TblP120File"`
 - `public."TblP120RateLimit"`
 - `public."P120CheckRateLimit"(...)`
-- `public."P120CanUploadStorageObject"(text)`
+- 所有名稱以 `P120` 開頭、且由本目錄明確列出的 RPC
 - Storage bucket `p120-temp-files`
 - Storage policy `PolP120SignedUploadInsert`
 
@@ -24,7 +32,7 @@
 - 修改其他 `TblPxx...`、RPC、policy、trigger或 bucket
 - 以 SQL 直接刪除 `storage.objects` metadata
 
-P120 三張 public 資料表仍不建立 anon／authenticated policy。Storage 只有一條 P120 專屬 anon INSERT policy，且必須同時符合 bucket 名稱、資料庫中不可猜測的完整物件路徑、pending 狀態、uploading 房間及尚未超過上傳期限；沒有 SELECT、UPDATE 或 DELETE policy。
+P120 三張 public 資料表仍不建立 anon／authenticated policy。瀏覽器只呼叫 Edge Function；Edge Function 對資料庫只呼叫 P120 RPC。Storage 只有一條 P120 專屬 anon INSERT policy，且必須同時符合 bucket、不可猜測的完整物件路徑、pending 狀態、有效分享空間及期限；沒有 SELECT、UPDATE 或 DELETE policy。
 
 ## 重複部署
 
