@@ -1,5 +1,6 @@
-P120 FileCourier V1.1.0 — Shared Workspace
-Build date: 2026-10-28
+P120 FileCourier V1.1.1 — Background Sync Fix
+Build date: 2026-11-02
 Baseline: GitHub Pages + Supabase Database + private Storage + Edge Function
 Feature: create-first shared workspace with QR Code, six-digit share code, collaborative note, and bidirectional file sharing.
+Fix: room-scoped signed background synchronization avoids exhausting the manual lookup rate limit.
 Standard: SBI-P-SDS v3.4

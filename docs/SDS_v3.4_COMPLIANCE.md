@@ -1,8 +1,8 @@
-# P120 V1.1.0｜SBI-P-SDS v3.4 合規報告
+# P120 V1.1.1｜SBI-P-SDS v3.4 合規報告
 
 - Project Code：P120
-- Web Version：V1.1.0
-- 檢查日期：2026-10-28（Asia/Taipei）
+- Web Version：V1.1.1
+- 檢查日期：2026-11-02（Asia/Taipei）
 - 基準：P120 V1.0.8
 - 規範：SBI-P-SDS v3.4
 
@@ -22,7 +22,7 @@
 | QA-12 | PASS | 交付 ZIP 排除 `config.js`，只含 `config-sample.js`；靜態掃描未發現 service role 欄位。 |
 | QA-13 | PASS | SQL 靜態掃描未發現其他 P 專案物件、schema-wide grant、default privileges 或 DROP SCHEMA。 |
 | QA-14 | N/A | 本次交付網站 ZIP，不改製海報。 |
-| QA-15 | PASS | 頁尾、CSS／JS query-string 與模組 import 均同步為 V1.1.0。 |
+| QA-15 | PASS | 頁尾、CSS／JS query-string 與模組 import 均同步為 V1.1.1。 |
 
 ## 自動檢查
 

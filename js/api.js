@@ -29,6 +29,7 @@ export class P120Api {
 
   createRoom(clientRequestId, managementToken) { return this.request("create-room", { clientRequestId, managementToken }); }
   lookupRoom(roomCode) { return this.request("lookup-room", { roomCode }); }
+  syncRoom(roomCode, syncToken) { return this.request("sync-room", { roomCode, syncToken }); }
   updateNote(roomCode, noteText, expectedRevision) { return this.request("update-note", { roomCode, noteText, expectedRevision }); }
   prepareUpload(roomCode, files) {
     return this.request("prepare-upload", { roomCode, files: files.map((file, index) => ({ sortOrder: index, name: file.name, type: file.type || "application/octet-stream", size: file.size })) });

@@ -53,8 +53,8 @@ else
   echo 'PASS: Edge Function 資料庫交換經 P120 RPC'
 fi
 
-if grep -RqsE 'V1\.1\.0' "$project_dir/index.html" && grep -RqsE 'v=1\.1\.0' "$project_dir/index.html" "$project_dir/js/app.js"; then
-  echo 'PASS: Web Version 與 cache busting 為 V1.1.0'
+if grep -RqsE 'V1\.1\.1' "$project_dir/index.html" && grep -RqsE 'v=1\.1\.1' "$project_dir/index.html" "$project_dir/js/app.js"; then
+  echo 'PASS: Web Version 與 cache busting 為 V1.1.1'
 else
   echo 'FAIL: Web Version 或 cache busting 未同步'
   failed=1

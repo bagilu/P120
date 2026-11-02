@@ -1,8 +1,8 @@
-import { LIMITS, copyText, createManagementToken, fileExtension, formatBytes, formatRoomCode, makeShareUrl, normalizeRoomCode, renderQrCode, showToast, singleSafeUrl } from "./utils.js?v=1.1.0";
+import { LIMITS, copyText, createManagementToken, fileExtension, formatBytes, formatRoomCode, makeShareUrl, normalizeRoomCode, renderQrCode, showToast, singleSafeUrl } from "./utils.js?v=1.1.1";
 
 export class Workspace {
   constructor(api) {
-    this.api = api; this.room = null; this.managementToken = null; this.noteDirty = false; this.noteSaving = false; this.noteConflictData = null; this.files = []; this.pollTimer = null; this.countdownTimer = null; this.saveTimer = null;
+    this.api = api; this.room = null; this.managementToken = null; this.noteDirty = false; this.noteSaving = false; this.noteConflictData = null; this.files = []; this.pollTimer = null; this.countdownTimer = null; this.saveTimer = null; this.refreshing = false; this.syncWarningShown = false;
     this.landing = document.getElementById("landing-view"); this.loading = document.getElementById("loading-view"); this.workspace = document.getElementById("workspace-view"); this.codeInput = document.getElementById("room-code"); this.note = document.getElementById("shared-note"); this.syncStatus = document.getElementById("note-sync-status"); this.fileInput = document.getElementById("file-input");
     this.bindEvents();
   }
@@ -19,6 +19,9 @@ export class Workspace {
     document.getElementById("file-picker").addEventListener("click", () => this.fileInput.click());
     this.fileInput.addEventListener("change", () => this.selectFiles(this.fileInput.files));
     document.getElementById("upload-button").addEventListener("click", () => this.uploadFiles());
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden && this.room) this.refreshRoom();
+    });
   }
   showView(name, message = "") { this.landing.hidden = name !== "landing"; this.loading.hidden = name !== "loading"; this.workspace.hidden = name !== "workspace"; if (message) document.getElementById("loading-message").textContent = message; }
   async createRoom() {
@@ -36,16 +39,20 @@ export class Workspace {
     this.room = data; this.noteDirty = false; this.noteConflictData = null; this.showView("workspace");
     document.getElementById("display-code").textContent = formatRoomCode(data.roomCode); this.note.value = data.noteText || ""; this.updateNoteUi(); this.renderFiles(data.files || []); this.updateRoomMeta(data); renderQrCode(document.getElementById("qr-code"), makeShareUrl(data.roomCode));
     const url = new URL(window.location.href); url.searchParams.set("code", data.roomCode); history.replaceState(null, "", url); document.getElementById("room-status").textContent = isCreator ? "分享空間已建立" : "已加入分享空間";
-    this.pollTimer = window.setInterval(() => this.refreshRoom(), 2500); this.startCountdown();
+    window.clearInterval(this.pollTimer); this.pollTimer = window.setInterval(() => { if (!document.hidden) this.refreshRoom(); }, 3000); this.startCountdown();
   }
   leaveRoom() { window.clearInterval(this.pollTimer); window.clearInterval(this.countdownTimer); window.clearTimeout(this.saveTimer); this.room = null; this.managementToken = null; this.files = []; const url = new URL(window.location.href); url.search = ""; history.replaceState(null, "", url); this.showView("landing"); }
   async refreshRoom(force = false) {
-    if (!this.room) return;
+    if (!this.room || this.refreshing) return;
+    this.refreshing = true;
     try {
-      const data = await this.api.lookupRoom(this.room.roomCode); this.updateRoomMeta(data); this.renderFiles(data.files || []);
+      const data = await this.api.syncRoom(this.room.roomCode, this.room.syncToken); this.updateRoomMeta(data); this.renderFiles(data.files || []); this.syncWarningShown = false;
       if (force || (!this.noteDirty && !this.noteSaving)) { this.room.noteRevision = data.noteRevision; this.room.noteText = data.noteText || ""; this.note.value = this.room.noteText; this.updateNoteUi(); }
       else if (data.noteRevision !== this.room.noteRevision) this.showConflict(data);
-    } catch (error) { if (["ROOM_EXPIRED", "ROOM_NOT_FOUND"].includes(error.code)) this.expireRoom(error.message); }
+    } catch (error) {
+      if (["ROOM_EXPIRED", "ROOM_NOT_FOUND"].includes(error.code)) this.expireRoom(error.message);
+      else if (!this.syncWarningShown) { this.syncWarningShown = true; showToast("背景同步暫時中斷，系統會自動重試。", "error"); }
+    } finally { this.refreshing = false; }
   }
   updateRoomMeta(data) { this.room = { ...this.room, ...data }; this.startCountdown(); }
   startCountdown() {

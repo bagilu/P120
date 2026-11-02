@@ -1,9 +1,10 @@
-# P120-transfer-api V1.1.0
+# P120-transfer-api V1.1.1
 
 公開 JSON actions：
 
 - `create-room`
 - `lookup-room`
+- `sync-room`（須附建立／加入房間時核發的短效 HMAC 簽章）
 - `update-note`
 - `prepare-upload`
 - `complete-upload`
@@ -11,6 +12,8 @@
 - `create-download-url`
 
 Edge Function 使用伺服器端 `service_role` 呼叫 P120 專屬 PostgreSQL RPC；程式中不得使用 `client.from()` 或 `supabase.from()`。Private Storage 的列出、簽署下載及清理由 Edge Function 執行。
+
+`lookup-room` 僅供人工加入房間，受 IP rate limit 保護；前端進入房間後改用 `sync-room`。同步簽章綁定單一房間、20 分鐘後失效，不能用來查詢其他房間。
 
 部署：
 

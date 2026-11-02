@@ -1,6 +1,6 @@
-import { P120Api } from "./api.js?v=1.1.0";
-import { Workspace } from "./workspace.js?v=1.1.0";
-import { normalizeRoomCode } from "./utils.js?v=1.1.0";
+import { P120Api } from "./api.js?v=1.1.1";
+import { Workspace } from "./workspace.js?v=1.1.1";
+import { normalizeRoomCode } from "./utils.js?v=1.1.1";
 
 function validateConfig(config) {
   if (!config) return "找不到 config.js。請先複製 config-sample.js 並填入公開設定。";
