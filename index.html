@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#0b2a4a">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://*.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests">
   <title>P120 檔案快遞</title>
-  <link rel="stylesheet" href="css/styles.css?v=1.1.1">
+  <link rel="stylesheet" href="css/styles.css?v=1.2.0">
 </head>
 <body>
   <header class="site-header"><div class="brand-bar"><span>慈濟大學經營管理學系</span><a href="https://tcubmdsbilab.github.io/P101/" target="_blank" rel="noopener noreferrer">好玩實驗室</a><span>作品</span></div></header>
@@ -20,6 +20,12 @@
     <noscript><div class="global-alert error">此網站需要啟用 JavaScript 才能使用。</div></noscript>
     <div id="config-alert" class="global-alert error" role="alert" hidden></div>
     <div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="true"></div>
+
+    <section id="expired-notice" class="expired-notice" role="alert" aria-labelledby="expired-title" hidden>
+      <div class="expired-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 7v5l3 2M21 12a9 9 0 1 1-9-9 9 9 0 0 1 9 9Z"/></svg></div>
+      <div><span class="section-kicker">本次分享已結束</span><h2 id="expired-title">10 分鐘分享時間已到</h2><p id="expired-message">為維持短效分享，原分享碼、共筆與檔案已失效，畫面內容也已清除。請重新開始分享，或加入新的分享碼。</p></div>
+      <button id="dismiss-expired-button" class="button secondary" type="button">我知道了</button>
+    </section>
 
     <section id="landing-view" class="landing-grid" aria-label="開始或加入分享">
       <article class="hero-card">
@@ -53,7 +59,7 @@
           <p id="note-conflict" class="inline-alert" role="alert" hidden>另一部裝置已更新內容。為避免覆蓋，請先重新載入共筆。</p><button id="reload-note-button" class="button secondary full" type="button" hidden>重新載入共筆</button>
         </article>
         <article class="panel files-panel" aria-labelledby="files-title">
-          <div class="panel-title-row"><div><span class="section-kicker">共享檔案</span><h2 id="files-title">傳送與接收檔案</h2></div><span id="file-summary" class="sync-status">0 個檔案</span></div>
+          <div class="panel-title-row"><div><span class="section-kicker">共享檔案</span><h2 id="files-title">傳送與接收檔案</h2></div><div class="file-heading-actions"><span id="file-summary" class="sync-status">0 個檔案</span><button id="download-all-button" class="button secondary small" type="button" hidden>全部下載</button></div></div>
           <input id="file-input" type="file" multiple hidden><button id="file-picker" class="file-picker" type="button"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 32V12m0 0 8 8m-8-8-8 8M10 37h28"/></svg><strong>選取檔案</strong><span>最多 20 個；單檔 50 MB；合計 100 MB</span></button>
           <div id="upload-selection" class="upload-selection" hidden><div id="selected-file-list" class="file-list"></div><div class="summary-line"><span id="selected-count"></span><span id="selected-size"></span></div><div class="meter" aria-hidden="true"><span id="upload-meter"></span></div><button id="upload-button" class="button primary full" type="button">開始上傳</button></div>
           <div id="room-file-list" class="file-list room-files"></div><div id="files-empty" class="empty-state"><p>尚未分享檔案。</p></div>
@@ -62,7 +68,7 @@
     </section>
     <section class="privacy-note" aria-label="使用提醒"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.5 2.8 8.1 7 10 4.2-1.9 7-5.5 7-10V6zM9 12l2 2 4-4"/></svg><p><strong>短效分享，不等於機密傳輸。</strong>請勿輸入或上傳敏感、機密或含個人資料的內容；只開啟可信來源提供的連結與檔案。</p></section>
   </main>
-  <footer><span>P120 檔案快遞 · V1.1.1</span><span>共享內容開始後保留 10 分鐘</span></footer>
-  <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js" crossorigin="anonymous"></script><script src="config.js?v=1.1.1"></script><script type="module" src="js/app.js?v=1.1.1"></script>
+  <footer><span>慈濟大學｜經營管理學系｜好玩實驗室 · Web Version V1.2.0 · SBI-P-SDS v3.6</span><span>共享內容開始後保留 10 分鐘</span></footer>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js" crossorigin="anonymous"></script><script src="config.js?v=1.2.0"></script><script type="module" src="js/app.js?v=1.2.0"></script>
 </body>
 </html>

@@ -1,9 +1,9 @@
-import { LIMITS, copyText, createManagementToken, fileExtension, formatBytes, formatRoomCode, makeShareUrl, normalizeRoomCode, renderQrCode, showToast, singleSafeUrl } from "./utils.js?v=1.1.1";
+import { LIMITS, copyText, createManagementToken, fileExtension, formatBytes, formatRoomCode, makeShareUrl, normalizeRoomCode, renderQrCode, showToast, singleSafeUrl } from "./utils.js?v=1.2.0";
 
 export class Workspace {
   constructor(api) {
     this.api = api; this.room = null; this.managementToken = null; this.noteDirty = false; this.noteSaving = false; this.noteConflictData = null; this.files = []; this.pollTimer = null; this.countdownTimer = null; this.saveTimer = null; this.refreshing = false; this.syncWarningShown = false;
-    this.landing = document.getElementById("landing-view"); this.loading = document.getElementById("loading-view"); this.workspace = document.getElementById("workspace-view"); this.codeInput = document.getElementById("room-code"); this.note = document.getElementById("shared-note"); this.syncStatus = document.getElementById("note-sync-status"); this.fileInput = document.getElementById("file-input");
+    this.landing = document.getElementById("landing-view"); this.loading = document.getElementById("loading-view"); this.workspace = document.getElementById("workspace-view"); this.expiredNotice = document.getElementById("expired-notice"); this.codeInput = document.getElementById("room-code"); this.note = document.getElementById("shared-note"); this.syncStatus = document.getElementById("note-sync-status"); this.fileInput = document.getElementById("file-input");
     this.bindEvents();
   }
   bindEvents() {
@@ -19,11 +19,13 @@ export class Workspace {
     document.getElementById("file-picker").addEventListener("click", () => this.fileInput.click());
     this.fileInput.addEventListener("change", () => this.selectFiles(this.fileInput.files));
     document.getElementById("upload-button").addEventListener("click", () => this.uploadFiles());
+    document.getElementById("download-all-button").addEventListener("click", (event) => this.downloadAllFiles(event.currentTarget));
+    document.getElementById("dismiss-expired-button").addEventListener("click", () => { this.expiredNotice.hidden = true; });
     document.addEventListener("visibilitychange", () => {
       if (!document.hidden && this.room) this.refreshRoom();
     });
   }
-  showView(name, message = "") { this.landing.hidden = name !== "landing"; this.loading.hidden = name !== "loading"; this.workspace.hidden = name !== "workspace"; if (message) document.getElementById("loading-message").textContent = message; }
+  showView(name, message = "") { this.landing.hidden = name !== "landing"; this.loading.hidden = name !== "loading"; this.workspace.hidden = name !== "workspace"; if (name !== "landing") this.expiredNotice.hidden = true; if (message) document.getElementById("loading-message").textContent = message; }
   async createRoom() {
     this.showView("loading", "正在準備分享空間…"); this.managementToken = createManagementToken();
     try { const data = await this.api.createRoom(crypto.randomUUID(), this.managementToken); this.openRoom(data, true); }
@@ -41,7 +43,12 @@ export class Workspace {
     const url = new URL(window.location.href); url.searchParams.set("code", data.roomCode); history.replaceState(null, "", url); document.getElementById("room-status").textContent = isCreator ? "分享空間已建立" : "已加入分享空間";
     window.clearInterval(this.pollTimer); this.pollTimer = window.setInterval(() => { if (!document.hidden) this.refreshRoom(); }, 3000); this.startCountdown();
   }
-  leaveRoom() { window.clearInterval(this.pollTimer); window.clearInterval(this.countdownTimer); window.clearTimeout(this.saveTimer); this.room = null; this.managementToken = null; this.files = []; const url = new URL(window.location.href); url.search = ""; history.replaceState(null, "", url); this.showView("landing"); }
+  resetRoomState() {
+    window.clearInterval(this.pollTimer); window.clearInterval(this.countdownTimer); window.clearTimeout(this.saveTimer); this.pollTimer = null; this.countdownTimer = null; this.saveTimer = null; this.refreshing = false; this.room = null; this.managementToken = null; this.files = []; this.noteDirty = false; this.noteSaving = false; this.noteConflictData = null; this.syncWarningShown = false;
+    this.note.value = ""; this.note.disabled = false; this.fileInput.value = ""; this.fileInput.disabled = false; document.getElementById("file-picker").disabled = false; document.getElementById("display-code").textContent = ""; document.getElementById("qr-code").replaceChildren(); document.getElementById("room-file-list").replaceChildren(); document.getElementById("selected-file-list").replaceChildren(); document.getElementById("upload-selection").hidden = true; document.getElementById("files-empty").hidden = false; document.getElementById("file-summary").textContent = "0 個檔案"; document.getElementById("download-all-button").hidden = true; document.getElementById("note-conflict").hidden = true; document.getElementById("reload-note-button").hidden = true; this.syncStatus.textContent = "已同步"; this.syncStatus.className = "sync-status"; this.updateNoteUi();
+    const url = new URL(window.location.href); url.searchParams.delete("code"); history.replaceState(null, "", url);
+  }
+  leaveRoom() { this.resetRoomState(); this.expiredNotice.hidden = true; this.showView("landing"); }
   async refreshRoom(force = false) {
     if (!this.room || this.refreshing) return;
     this.refreshing = true;
@@ -60,14 +67,20 @@ export class Workspace {
     const tick = () => { if (!this.room?.expiresAt) { output.textContent = "等待第一筆內容"; return; } const seconds = Math.max(0, Math.ceil((new Date(this.room.expiresAt).getTime() - Date.now()) / 1000)); output.textContent = `剩餘 ${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`; if (seconds <= 0) this.expireRoom("此分享空間已到期。"); };
     tick(); this.countdownTimer = window.setInterval(tick, 500);
   }
-  expireRoom(message) { window.clearInterval(this.pollTimer); window.clearInterval(this.countdownTimer); this.note.disabled = true; this.fileInput.disabled = true; document.getElementById("file-picker").disabled = true; document.getElementById("room-status").textContent = "分享空間已到期"; document.getElementById("room-countdown").textContent = "已到期"; showToast(message || "分享空間已到期。", "error"); }
+  expireRoom() {
+    if (!this.room) return;
+    const wasTimedShare = Boolean(this.room?.expiresAt); this.resetRoomState(); this.showView("landing"); this.expiredNotice.hidden = false;
+    document.getElementById("expired-title").textContent = wasTimedShare ? "10 分鐘分享時間已到" : "分享空間已失效";
+    document.getElementById("expired-message").textContent = wasTimedShare ? "為維持短效分享，原分享碼、共筆與檔案已失效，畫面內容也已清除。請重新開始分享，或加入新的分享碼。" : "這個分享空間尚未開始使用且已逾時，原分享碼已失效。請重新開始分享，或加入新的分享碼。";
+    this.expiredNotice.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
   async copyInvite() { try { await copyText(makeShareUrl(this.room.roomCode)); showToast("邀請連結已複製。"); } catch { showToast("無法複製邀請連結。", "error"); } }
   onNoteInput() { this.noteDirty = true; this.syncStatus.textContent = "等待同步"; this.syncStatus.className = "sync-status is-working"; this.updateNoteUi(); window.clearTimeout(this.saveTimer); this.saveTimer = window.setTimeout(() => this.saveNote(), 700); }
   updateNoteUi() { document.getElementById("note-count").textContent = `${Array.from(this.note.value).length.toLocaleString()}／5,000`; document.getElementById("open-link-button").hidden = !singleSafeUrl(this.note.value); }
   async saveNote() {
     if (!this.room || !this.noteDirty || this.noteConflictData || this.noteSaving) return; this.noteSaving = true; this.syncStatus.textContent = "同步中…"; this.syncStatus.className = "sync-status is-working";
     try { const data = await this.api.updateNote(this.room.roomCode, this.note.value, this.room.noteRevision); this.room = { ...this.room, ...data }; this.noteDirty = false; this.syncStatus.textContent = "已同步"; this.syncStatus.className = "sync-status"; this.startCountdown(); }
-    catch (error) { if (error.code === "NOTE_CONFLICT" && error.details) this.showConflict(error.details); else { this.syncStatus.textContent = "同步失敗"; this.syncStatus.className = "sync-status is-error"; showToast(error.message || "共筆同步失敗。", "error"); } }
+    catch (error) { if (["ROOM_EXPIRED", "ROOM_NOT_FOUND"].includes(error.code)) this.expireRoom(); else if (error.code === "NOTE_CONFLICT" && error.details) this.showConflict(error.details); else { this.syncStatus.textContent = "同步失敗"; this.syncStatus.className = "sync-status is-error"; showToast(error.message || "共筆同步失敗。", "error"); } }
     finally { this.noteSaving = false; }
   }
   showConflict(data) { this.noteConflictData = data; document.getElementById("note-conflict").hidden = false; document.getElementById("reload-note-button").hidden = false; this.syncStatus.textContent = "版本衝突"; this.syncStatus.className = "sync-status is-error"; }
@@ -86,9 +99,18 @@ export class Workspace {
     const problem = this.validateFiles(); if (problem) return showToast(problem, "error"); const button = document.getElementById("upload-button"); button.disabled = true; button.textContent = "準備上傳…"; let prepared = null;
     try {
       prepared = await this.api.prepareUpload(this.room.roomCode, this.files); const uploads = [...prepared.uploads].sort((a, b) => a.sortOrder - b.sortOrder); let cursor = 0; let done = 0; const worker = async () => { while (cursor < uploads.length) { const i = cursor++; await this.api.uploadFile(uploads[i].path, this.files[i]); done += 1; button.textContent = `上傳中 ${done}／${uploads.length}`; } }; const concurrency = window.matchMedia?.("(pointer: coarse)")?.matches ? 1 : Math.min(3, uploads.length); await Promise.all(Array.from({ length: concurrency }, worker)); const data = await this.api.completeUpload(this.room.roomCode, prepared.uploadId); this.files = []; this.renderSelection(); this.updateRoomMeta(data); await this.refreshRoom(true); showToast("檔案已加入分享空間。");
-    } catch (error) { if (prepared?.uploadId) { try { await this.api.cancelUpload(this.room.roomCode, prepared.uploadId); } catch { /* 到期後由系統清理 */ } } showToast(error.message || "檔案上傳失敗。", "error"); }
+    } catch (error) { if (prepared?.uploadId && this.room) { try { await this.api.cancelUpload(this.room.roomCode, prepared.uploadId); } catch { /* 到期後由系統清理 */ } } if (["ROOM_EXPIRED", "ROOM_NOT_FOUND"].includes(error.code)) this.expireRoom(); else showToast(error.message || "檔案上傳失敗。", "error"); }
     finally { button.disabled = false; button.textContent = "開始上傳"; }
   }
-  renderFiles(files) { this.room.files = files; const list = document.getElementById("room-file-list"); list.replaceChildren(); document.getElementById("files-empty").hidden = files.length > 0; document.getElementById("file-summary").textContent = `${files.length} 個檔案`; files.forEach((file) => { const item = this.makeFileItem(file.name, file.size); const button = document.createElement("button"); button.className = "button secondary small"; button.type = "button"; button.textContent = "下載"; button.addEventListener("click", () => this.downloadFile(file, button)); item.append(button); list.append(item); }); }
-  async downloadFile(file, button) { button.disabled = true; try { const data = await this.api.createDownloadUrl(this.room.roomCode, file.fileId); const link = document.createElement("a"); link.href = data.downloadUrl; link.download = file.name; link.rel = "noopener"; document.body.append(link); link.click(); link.remove(); } catch (error) { showToast(error.message || "無法下載檔案。", "error"); } finally { button.disabled = false; } }
+  renderFiles(files) { this.room.files = files; const list = document.getElementById("room-file-list"); list.replaceChildren(); document.getElementById("files-empty").hidden = files.length > 0; document.getElementById("file-summary").textContent = `${files.length} 個檔案`; document.getElementById("download-all-button").hidden = files.length === 0; files.forEach((file) => { const item = this.makeFileItem(file.name, file.size); const button = document.createElement("button"); button.className = "button secondary small"; button.type = "button"; button.textContent = "下載"; button.addEventListener("click", () => this.downloadFile(file, button)); item.append(button); list.append(item); }); }
+  triggerDownload(downloadUrl, name) { const link = document.createElement("a"); link.href = downloadUrl; link.download = name; link.rel = "noopener"; document.body.append(link); link.click(); link.remove(); }
+  async downloadFile(file, button) { button.disabled = true; try { const data = await this.api.createDownloadUrl(this.room.roomCode, file.fileId); this.triggerDownload(data.downloadUrl, file.name); } catch (error) { if (["ROOM_EXPIRED", "ROOM_NOT_FOUND"].includes(error.code)) this.expireRoom(); else showToast(error.message || "無法下載檔案。", "error"); } finally { button.disabled = false; } }
+  async downloadAllFiles(button) {
+    const files = [...(this.room?.files || [])]; if (!files.length) return showToast("目前沒有可下載的檔案。", "error"); const roomCode = this.room.roomCode; const originalText = button.textContent; button.disabled = true;
+    try {
+      const downloads = []; for (let index = 0; index < files.length; index += 1) { button.textContent = `準備中 ${index + 1}／${files.length}`; const data = await this.api.createDownloadUrl(roomCode, files[index].fileId); downloads.push({ ...data, name: files[index].name }); }
+      downloads.forEach((item, index) => window.setTimeout(() => this.triggerDownload(item.downloadUrl, item.name), index * 180)); showToast(`已送出 ${downloads.length} 個檔案的下載；若瀏覽器詢問，請允許此網站下載多個檔案。`);
+    } catch (error) { if (["ROOM_EXPIRED", "ROOM_NOT_FOUND"].includes(error.code)) this.expireRoom(); else showToast(error.message || "無法下載全部檔案。", "error"); }
+    finally { button.disabled = false; button.textContent = originalText; }
+  }
 }

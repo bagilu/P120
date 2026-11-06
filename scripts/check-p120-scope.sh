@@ -53,10 +53,31 @@ else
   echo 'PASS: Edge Function 資料庫交換經 P120 RPC'
 fi
 
-if grep -RqsE 'V1\.1\.1' "$project_dir/index.html" && grep -RqsE 'v=1\.1\.1' "$project_dir/index.html" "$project_dir/js/app.js"; then
-  echo 'PASS: Web Version 與 cache busting 為 V1.1.1'
+if grep -RqsE 'V1\.2\.0' "$project_dir/index.html" && grep -RqsE 'v=1\.2\.0' "$project_dir/index.html" "$project_dir/js/app.js"; then
+  echo 'PASS: Web Version 與 cache busting 為 V1.2.0'
 else
   echo 'FAIL: Web Version 或 cache busting 未同步'
+  failed=1
+fi
+
+if grep -Fqs '慈濟大學｜經營管理學系｜好玩實驗室 · Web Version V1.2.0 · SBI-P-SDS v3.6' "$project_dir/index.html"; then
+  echo 'PASS: 頁尾機構、Web Version 與 SDS v3.6 順序正確'
+else
+  echo 'FAIL: 頁尾未依 SDS v3.6 標示'
+  failed=1
+fi
+
+if grep -Fqs 'id="download-all-button"' "$project_dir/index.html" && grep -Fqs 'downloadAllFiles(button)' "$project_dir/js/workspace.js"; then
+  echo 'PASS: 接收檔案提供全部下載功能'
+else
+  echo 'FAIL: 全部下載功能不完整'
+  failed=1
+fi
+
+if grep -Fqs 'url.searchParams.delete("code")' "$project_dir/js/workspace.js" && grep -Fqs '10 分鐘分享時間已到' "$project_dir/index.html"; then
+  echo 'PASS: 到期會清除房號並顯示明確說明'
+else
+  echo 'FAIL: 到期清除或說明不完整'
   failed=1
 fi
 

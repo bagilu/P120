@@ -1,4 +1,4 @@
-# P120-transfer-api V1.1.1
+# P120-transfer-api（V1.2.0 套件；功能內容沿用 V1.1.1）
 
 公開 JSON actions：
 

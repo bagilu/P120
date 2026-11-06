@@ -1,6 +1,6 @@
-P120 FileCourier V1.1.1 — Background Sync Fix
-Build date: 2026-11-02
+P120 FileCourier V1.2.0 — Download All & Clear Expiry State
+Build date: 2026-11-06
 Baseline: GitHub Pages + Supabase Database + private Storage + Edge Function
-Feature: create-first shared workspace with QR Code, six-digit share code, collaborative note, and bidirectional file sharing.
-Fix: room-scoped signed background synchronization avoids exhausting the manual lookup rate limit.
-Standard: SBI-P-SDS v3.4
+Feature: create-first shared workspace with QR Code, six-digit share code, collaborative note, bidirectional file sharing, and download all.
+Fix: expired rooms clear local content and URL state, then return both parties to a clear expiry notice on the landing page.
+Standard: SBI-P-SDS v3.6
